@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  selftest:
+    # The backend drives a real Windows desktop (UIA + SendInput), so the
+    # smoke test must run on a Windows runner with a desktop session.
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        powershell: [powershell.exe, pwsh.exe]
+    env:
+      WINDOWS_CU_POWERSHELL: ${{ matrix.powershell }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # No install step: the package has zero runtime dependencies. The MCP
+      # server is plain ESM and the backend is PowerShell 5.1 + csc.
+
+      # Runtime caches and artifacts are isolated per suite. Read-only smoke
+      # checks use the desktop; input/activation/coordinate tests use fake APIs.
+      - name: Isolated backend regression suite
+        run: npm test
+        timeout-minutes: 15
